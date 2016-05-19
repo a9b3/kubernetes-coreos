@@ -16,7 +16,7 @@ PARAMS="{
 echo "Generating kubernetes api server keypair openssl..."
 echo "$PARAMS"
 hbs-templater compile --params "$PARAMS" \
-  --input ./templates \
+  --input ./api_server_templates \
   --output ../../certs \
   -l --overwrite
 
