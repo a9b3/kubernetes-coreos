@@ -24,29 +24,16 @@ coreos:
     interface: $public_ipv4
   units:
     - name: etcd2.service
-      mask: true
+      command: start
     - name: fleet.service
       command: start
-    # - name: flanneld.service
-    #   drop-ins:
-    #   - name: 50-network-config.conf
-    #     content: |
-    #       [Unit]
-    #       Requires=etcd2.service
-    #       [Service]
-    #       ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "{{POD_NETWORK}}" }'
-    #   command: start
+    - name: flanneld.service
+      drop-ins:
+      - name: 50-network-config.conf
+        content: |
+          [Unit]
+          Requires=etcd2.service
 
-    # - name: flanneld.service
-    #   command: start
-    #   content: |
-    #     [Unit]
-    #     Description=Flannel etcd backed overlay network for containers
-    #     After=network-online.target
-    #     Wants=network-online.target
-    #
-    #     [Service]
-    #     Type=notify
-    #     ExecStartPre=-/usr/bin/mkdir -p /opt/bin
-    #     ExecStartPre=/usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/flannel/flanneld
-    #
+          [Service]
+          ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "{{POD_NETWORK}}" }'
+      command: start

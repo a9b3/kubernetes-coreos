@@ -10,7 +10,7 @@ source ./config.env
 
 ETCD_PARAMS="{
   \"CLUSTER_SIZE\": \"$ETCD_CLUSTER_SIZE\",
-  \"ETCD_DISCOVERY_TOKEN\": \"$ETCD_DISCOVERY_TOKEN\",
+  \"ETCD_DISCOVERY_TOKEN\": \"$ETCD_DISCOVERY_TOKEN\"
 }"
 
 echo "Generating etcd files..."

@@ -6,7 +6,7 @@
 parent_path=$( cd "$(dirname "${BASH_SOURCE}")" ; pwd -P )
 cd "$parent_path"
 
-ETCD_CLUSTER_SIZE=1
+ETCD_CLUSTER_SIZE=3
 MASTER_CLUSTER_SIZE=1
 MINION_CLUSTER_SIZE=3
 
