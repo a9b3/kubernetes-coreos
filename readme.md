@@ -110,3 +110,21 @@ Now this node is up you can generate a api server keypair. With this host ip's a
 # back into the project directory
 MASTER_IP=<kubernetes master node ip> ./scripts/openssl/create_kubernetes_api_server_keypair.sh
 ```
+
+You can also generate the admin keys now. This will generate `admin-key.pem`, `admin.pem`, and `admin.csr` inside `...project_dir/certs/`.
+
+```sh
+./scripts/openssl/create_cluster_admin_keypair.sh
+```
+
+## Break
+
+Ok let's check what we have so far.
+
+- Dedicated ETCD cluster
+- Kubernetes Master Node
+- certs for master node, and admin
+
+What we have to do.
+
+- 

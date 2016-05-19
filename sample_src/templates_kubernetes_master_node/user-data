@@ -1,6 +1,25 @@
 #cloud-config
 # vim: set ft=yaml:
 
+write-files:
+  - path: /opt/openssl/openssl.cnf
+    content: |
+      [req]
+      req_extensions = v3_req
+      distinguished_name = req_distinguished_name
+      [req_distinguished_name]
+      [ v3_req ]
+      basicConstraints = CA:FALSE
+      keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+      subjectAltName = @alt_names
+      [alt_names]
+      DNS.1 = kubernetes
+      DNS.2 = kubernetes.default
+      DNS.3 = kubernetes.default.svc
+      DNS.4 = kubernetes.default.svc.cluster.local
+      IP.1 = {{KUBERNETES_SERVICE_IP}}
+      IP.2 = $ENV::MASTER_IP
+
 hostname: kubernetes-master
 
 coreos:
@@ -37,3 +56,30 @@ coreos:
           [Service]
           ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "{{POD_NETWORK}}" }'
       command: start
+    - name: generate-certs.service
+      command: start
+      content: |
+        [Unit]
+        Description=Generate certs
+
+        [Service]
+        Environment="HOME=/root"
+        Environment=MASTER_IP=$public_ipv4
+        ExecStartPre=/usr/bin/mkdir -p /opt/certs
+        ExecStartPre=/usr/bin/openssl genrsa -out /opt/certs/apiserver-key.pem 2048
+        ExecStartPre=/usr/bin/openssl req -new -key /opt/certs/apiserver-key.pem \
+          -out /opt/certs/apiserver.csr \
+          -subj "/CN=kube-apiserver" \
+          -config /opt/openssl/openssl.cnf
+        ExecStartPre=/usr/bin/openssl x509 -req -in /opt/certs/apiserver.csr \
+          -CA /opt/certs/ca.pem \
+          -CAkey /opt/certs/ca-key.pem \
+          -CAcreateserial \
+          -out /opt/certs/apiserver.pem \
+          -days 365 \
+          -extensions v3_req \
+          -extfile /opt/openssl/openssl.cnf
+        ExecStart=/usr/bin/chmod 600 /opt/certs/*-key.pem \
+          /usr/bin/chown root:root /opt/certs/*-key.pem
+        RemainAfterExit=yes
+        Type=oneshot
