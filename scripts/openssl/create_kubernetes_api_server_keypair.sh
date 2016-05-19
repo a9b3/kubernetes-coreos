@@ -16,21 +16,21 @@ PARAMS="{
 echo "Generating kubernetes api server keypair openssl..."
 echo "$PARAMS"
 hbs-templater compile --params "$PARAMS" \
-  --input ./templates/openssl.cnf \
+  --input ./templates \
   --output ../../certs \
   -l --overwrite
 
-# echo "Generating kubernetes api server keypair certs..."
-# openssl genrsa -out ../../certs/apiserver-key.pem 2048
-# openssl req -new -key ../../certs/apiserver-key.pem \
-#   -out ../../certs/apiserver.csr \
-#   -subj "/CN=kube-apiserver" \
-#   -config ../../certs/openssl.cnf
-# openssl x509 -req -in ../../certs/apiserver.csr \
-#   -CA ../../certs/ca.pem \
-#   -CAkey ../../certs/ca-key.pem \
-#   -CAcreateserial \
-#   -out ../../certs/apiserver.pem \
-#   -days 365 \
-#   -extensions v3_req \
-#   -extfile ../../certs/openssl.cnf
+echo "Generating kubernetes api server keypair certs..."
+openssl genrsa -out ../../certs/apiserver-key.pem 2048
+openssl req -new -key ../../certs/apiserver-key.pem \
+  -out ../../certs/apiserver.csr \
+  -subj "/CN=kube-apiserver" \
+  -config ../../certs/openssl.cnf
+openssl x509 -req -in ../../certs/apiserver.csr \
+  -CA ../../certs/ca.pem \
+  -CAkey ../../certs/ca-key.pem \
+  -CAcreateserial \
+  -out ../../certs/apiserver.pem \
+  -days 365 \
+  -extensions v3_req \
+  -extfile ../../certs/openssl.cnf
