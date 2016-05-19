@@ -1,0 +1,52 @@
+#cloud-config
+# vim: set ft=yaml:
+
+hostname: kubernetes-master
+
+coreos:
+  etcd2:
+    #generate a new token for each unique cluster from https://discovery.etcd.io/new
+    {{#if ETCD_DISCOVERY_TOKEN}}
+    discovery: https://discovery.etcd.io/{{ETCD_DISCOVERY_TOKEN}}
+    {{/if}}
+    # multi-region and multi-cloud deployments need to use $public_ipv4
+    advertise-client-urls: http://$public_ipv4:2379
+    initial-advertise-peer-urls: http://$private_ipv4:2380
+    # listen on both the official ports and the legacy ports
+    # legacy ports can be omitted if your application doesn't depend on them
+    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
+    listen-peer-urls: http://$private_ipv4:2380,http://$private_ipv4:7001
+  fleet:
+    etcd_servers: {{ETCD_CLUSTER_NODE_IPS}}
+    metadata: role=kubernetes-master
+    public-ip: $public_ipv4
+  flannel:
+    interface: $public_ipv4
+  units:
+    - name: etcd2.service
+      mask: true
+    - name: fleet.service
+      command: start
+    # - name: flanneld.service
+    #   drop-ins:
+    #   - name: 50-network-config.conf
+    #     content: |
+    #       [Unit]
+    #       Requires=etcd2.service
+    #       [Service]
+    #       ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "{{POD_NETWORK}}" }'
+    #   command: start
+
+    # - name: flanneld.service
+    #   command: start
+    #   content: |
+    #     [Unit]
+    #     Description=Flannel etcd backed overlay network for containers
+    #     After=network-online.target
+    #     Wants=network-online.target
+    #
+    #     [Service]
+    #     Type=notify
+    #     ExecStartPre=-/usr/bin/mkdir -p /opt/bin
+    #     ExecStartPre=/usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/flannel/flanneld
+    #

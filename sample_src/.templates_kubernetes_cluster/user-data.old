@@ -13,7 +13,15 @@ write-files:
         done;
       exit $?
 
+{{#if ETCD}}
+hostname: etcd
+{{/if}}
+
 coreos:
+  {{#if ETCD}}
+  {{/if}}
+
+  {{#if MASTER}}
   etcd2:
     #generate a new token for each unique cluster from https://discovery.etcd.io/new
     {{#if ETCD_DISCOVERY_TOKEN}}
@@ -44,6 +52,10 @@ coreos:
           [Service]
           ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.100.0.0/16" }'
       command: start
+  {{/if}}
+
+  {{#if MINION}}
+  {{/if}}
     # - name: docker.service
     #   command: restart
     #   content: |
