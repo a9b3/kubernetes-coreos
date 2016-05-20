@@ -23,9 +23,13 @@ Overview parts of the cluster.
 ./scripts/create_cluster_admin_keypair.sh
 # => certs/
 
+# Start cluster and obtain ips
+
 ETCD_CLUSTER_NODE_IPS=http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379 ./scripts/compile_kubernetes_master_node.sh
 # => outputs/master
 # Get outputs/master/certs/* into the machine /etc/kubernetes/ssl
+
+# Start master node and obtain ip
 
 # Set up local kubectl with master ip
 ./setup_kubectl.sh 172.17.8.201
