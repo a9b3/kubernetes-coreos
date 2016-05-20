@@ -159,10 +159,10 @@ Running this script and giving it the ip of the master node will set up your kub
 ./setup_kubectl.sh 172.17.8.201
 ```
 
-Now if you run kubectl you should see some stuff.
+Now you can see the cluster info.
 
 ```sh
-kubectl get nodes
+kubectl cluster-info
 # should see the master node
 ```
 
@@ -172,4 +172,12 @@ You will need the ip of the master node and the ips of the etcd cluster nodes.
 
 ```sh
 MASTER_IP=172.17.8.201 ETCD_CLUSTER_NODE_IPS=http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379 ./scripts/compile_kubernetes_minion_node.sh
+```
+
+After this you can check to see the minion node.
+
+```sh
+kubectl get nodes
+# should now list the minion node
+# takes a minute or 2 or 5
 ```
