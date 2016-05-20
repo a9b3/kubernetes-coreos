@@ -27,6 +27,9 @@ ETCD_CLUSTER_NODE_IPS=http://172.17.8.101:2379,http://172.17.8.102:2379,http://1
 # => outputs/master
 # Get outputs/master/certs/* into the machine /etc/kubernetes/ssl
 
+# Set up local kubectl with master ip
+./setup_kubectl.sh 172.17.8.201
+
 MASTER_IP=172.17.8.201 ETCD_CLUSTER_NODE_IPS=http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379 ./scripts/compile_kubernetes_minion_node.sh
 # => outputs/minion
 ```
