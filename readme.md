@@ -6,6 +6,15 @@ Overview parts of the cluster.
 2. Master Kubernetes node.
 3. Minion Kubernetes nodes.
 
+## Get kubectl
+
+First let's download kubectl on our local machine so we can test the cluster as we set it up. 
+
+```sh
+brew install kubectl
+kubectl version
+```
+
 ## Dedicated ETCD Cluster
 
 First generate the config.env that will be used to compile the templates.
@@ -53,10 +62,16 @@ So it looks good. We just set up a dedicated etcd cluster with 3 nodes. You can 
 
 ## Generate Certs
 
-First generate the cluster root ca. Run this script which will generate `ca-key.pem` and `ca.pem` in `...project_root/certs`.
+First generate the cluster root ca. Run this script which will generate into `<project_dir>/certs`
+
+- ca-key.pem
+- ca.pem
+- admin-key.pem
+- admin.pem
 
 ```sh
-./scripts/openssl/create_cluster_root_ca.sh
+./scripts/create_cluster_root_ca.sh
+./scripts/create_cluster_admin_keypair.sh
 ```
 
 ## Kubernetes Master Node
@@ -104,18 +119,6 @@ ifconfig
 # docker0's inet should be in the range specified
 ```
 
-Now this node is up you can generate a api server keypair. With this host ip's address. You can find it by `fleetctl list-machines` and see what the ip is for the kubernetes master node. This will generate 3 files in `...project_root/certs` which will be `apiserver.pem`, `apiserver-key.pem`, and `apiserver.csr`.
-
-```sh
-# back into the project directory
-MASTER_IP=<kubernetes master node ip> ./scripts/openssl/create_kubernetes_api_server_keypair.sh
-```
-
-You can also generate the admin keys now. This will generate `admin-key.pem`, `admin.pem`, and `admin.csr` inside `...project_dir/certs/`.
-
-```sh
-./scripts/openssl/create_cluster_admin_keypair.sh
-```
 
 ## Break
 

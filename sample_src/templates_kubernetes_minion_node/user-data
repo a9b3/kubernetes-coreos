@@ -1,17 +1,44 @@
 #cloud-config
 # vim: set ft=yaml:
 
+write-files:
+  - path: /opt/openssl/openssl.cnf
+    content: |
+      [req]
+      req_extensions = v3_req
+      distinguished_name = req_distinguished_name
+      [req_distinguished_name]
+      [ v3_req ]
+      basicConstraints = CA:FALSE
+      keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+      subjectAltName = @alt_names
+      [alt_names]
+      IP.1 = $ENV::WORKER_IP
+
 hostname: kubernetes-minion
 
 coreos:
+  etcd2:
+    #generate a new token for each unique cluster from https://discovery.etcd.io/new
+    {{#if ETCD_DISCOVERY_TOKEN}}
+    discovery: https://discovery.etcd.io/{{ETCD_DISCOVERY_TOKEN}}
+    {{/if}}
+    # multi-region and multi-cloud deployments need to use $public_ipv4
+    advertise-client-urls: http://$public_ipv4:2379
+    initial-advertise-peer-urls: http://$private_ipv4:2380
+    # listen on both the official ports and the legacy ports
+    # legacy ports can be omitted if your application doesn't depend on them
+    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
+    listen-peer-urls: http://$private_ipv4:2380,http://$private_ipv4:7001
   fleet:
-    etcd_servers:
+    etcd_servers: {{ETCD_CLUSTER_NODE_IPS}}
+    metadata: role=kubernetes-master
     public-ip: $public_ipv4
   flannel:
     interface: $public_ipv4
   units:
     - name: etcd2.service
-      mask: true
+      command: start
     - name: fleet.service
       command: start
     - name: flanneld.service
@@ -20,6 +47,33 @@ coreos:
         content: |
           [Unit]
           Requires=etcd2.service
+
           [Service]
-          ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "10.100.0.0/16" }'
+          ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "{{POD_NETWORK}}" }'
       command: start
+    - name: generate-certs.service
+      command: start
+      content: |
+        [Unit]
+        Description=Generate worker certs
+
+        [Service]
+        Environment="HOME=/root"
+        Environment=WORKER_IP=$public_ipv4
+        Environment=WORKER_FQDN=minion$public_ipv4
+        ExecStartPre=/usr/bin/mkdir -p /opt/certs
+        ExecStartPre=/usr/bin/openssl genrsa -out /opts/certs/${WORKER_FQDN}-worker-key.pem 2048
+        ExecStartPre=/usr/bin/openssl req -new -key /opts/certs/${WORKER_FQDN}-worker-key.pem \
+          -out /opts/certs/${WORKER_FQDN}-worker.csr \
+          -subj "/CN=${WORKER_FQDN}" \
+          -config ./worker-openssl.cnf
+        ExecStart=/usr/bin/openssl x509 -req -in /opts/certs/${WORKER_FQDN}-worker.csr \
+          -CA /opts/certs/ca.pem \
+          -CAkey /opts/certs/ca-key.pem \
+          -CAcreateserial \
+          -out /opts/certs/${WORKER_FQDN}-worker.pem \
+          -days 365 \
+          -extensions v3_req \
+          -extfile ./worker-openssl.cnf
+        RemainAfterExit=yes
+        Type=oneshot

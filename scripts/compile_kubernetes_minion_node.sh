@@ -21,3 +21,8 @@ hbs-templater compile --params "$MINION_PARAMS" \
   --input ../sample_src/templates_kubernetes_minion_node \
   --output ../output/minion \
   -l --overwrite
+
+echo "Copying over CA certs..."
+mkdir ../output/minion/certs
+cp ../certs/ca.pem ../output/minion/certs
+cp ../certs/ca-key.pem ../output/minion/certs

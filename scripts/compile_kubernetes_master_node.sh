@@ -26,7 +26,7 @@ hbs-templater compile --params "$MASTER_PARAMS" \
   --output ../output/master \
   -l --overwrite
 
-# Generate Certs
-# CERT_OUTPUT_DIR=$2/master/certs
-# openssl genrsa -out $CERT_OUTPUT_DIR/ca-key.pem 2048
-# openssl req -x509 -new -nodes -key $CERT_OUTPUT_DIR/ca-key.pem -days 10000 -out $CERT_OUTPUT_DIR/ca.pem -subj "/CN=kube-ca"
+echo "Copying over CA certs..."
+mkdir ../output/master/certs
+cp ../certs/ca.pem ../output/master/certs
+cp ../certs/ca-key.pem ../output/master/certs
