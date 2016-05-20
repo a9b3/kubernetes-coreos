@@ -92,7 +92,7 @@ coreos:
           -out /etc/kubernetes/ssl/apiserver.csr \
           -subj "/CN=kube-apiserver" \
           -config /etc/kubernetes/ssl/openssl.cnf
-        ExecStartPre=/usr/bin/openssl x509 -req -in /etc/kubernetes/ssl/apiserver.csr \
+        ExecStart=/usr/bin/openssl x509 -req -in /etc/kubernetes/ssl/apiserver.csr \
           -CA /etc/kubernetes/ssl/ca.pem \
           -CAkey /etc/kubernetes/ssl/ca-key.pem \
           -CAcreateserial \
@@ -100,9 +100,6 @@ coreos:
           -days 365 \
           -extensions v3_req \
           -extfile /etc/kubernetes/ssl/openssl.cnf
-        ExecStartPre=/usr/bin/rm /etc/kubernetes/ssl/ca-key.pem
-        ExecStartPre=/usr/bin/chmod 600 /etc/kubernetes/ssl/apiserver-key.pem
-        ExecStart=/usr/bin/chown root:root /etc/kubernetes/ssl/apiserver-key.pem
         RemainAfterExit=yes
         Type=oneshot
 
