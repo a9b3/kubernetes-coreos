@@ -3,38 +3,45 @@
 Overview parts of the cluster.
 
 1. Dedicated ETCD cluster.
-2. Master Kubernetes node.
-3. Minion Kubernetes nodes.
+2. Master Kubernetes node. (Requires ETCD Cluster IPs)
+4. Minion Kubernetes nodes.
 
-## Get kubectl
-
-First let's download kubectl on our local machine so we can test the cluster as we set it up. 
+## Super Quick Start
 
 ```sh
-brew install kubectl
-kubectl version
+./scripts/generate_config.sh
+./scripts/compile_etcd_cluster.sh
+# => outputs/etcd/
+
+./scripts/create_cluster_root_ca.sh
+./scripts/create_cluster_admin_keypair.sh
+# => certs/
+
+ETCD_CLUSTER_NODE_IPS=http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379 ./scripts/compile_kubernetes_master_node.sh
+# => outputs/master
+# Get outputs/master/certs/* into the machine /etc/kubernetes/ssl
+```
+
+## Generate config.env
+
+This should only be done ONCE per cluster. This will create `scripts/config.env` which will be used to generate the files for the etcd, master, minion node user-data.
+
+```sh
+./scripts/generate_config.sh
+# => generated ./scripts/config.env
 ```
 
 ## Dedicated ETCD Cluster
 
-First generate the config.env that will be used to compile the templates.
+Now generate the templates for starting a etcd cluster. This script will output files into `output/etcd`.
 
 ```sh
-# Generate the config.env for cluster
-# Run only once per cluster
-# You can change the settings inside generate_config.sh
-./scripts/generate_config.sh
-```
-
-Now compile the template for starting a vagrant etcd cluster.
-
-```sh
-# Then generate the files for etcd cluster
-# This will put all the etcd files into output/etcd
-# You can then start up the etcd cluster, and obtain
-# The list of IPs for each etcd node
 ./scripts/compile_etcd_cluster.sh
 ```
+
+You can follow along by using vagrant, or just use the user-data files to start them up in digital ocean.
+
+#### Vagrant
 
 Go into the folder with the compiled assets and start the cluster.
 
@@ -49,7 +56,7 @@ This will start up the cluster. You can ssh into one of the nodes to check it ou
 vagrant ssh core-01
 ```
 
-Inside the CoreOS machine you can run a few commands to get familiar.
+Inside the CoreOS machine you can run a few commands to explore what it's doing.
 
 ```sh
 fleetctl list-machines
@@ -58,11 +65,11 @@ etcdctl member list
 etcdctl cluster-health
 ```
 
-So it looks good. We just set up a dedicated etcd cluster with 3 nodes. You can then target this cluster by its list of IPs.
+So it looks good. We just set up a dedicated etcd cluster with 3 nodes. You can then target this cluster by its list of IPs. You can get the list of IPs by running `fleetctl list-machines`.
 
 ## Generate Certs
 
-First generate the cluster root ca. Run this script which will generate into `<project_dir>/certs`
+First generate the cluster root ca. Run this script which will generate the following files into `<project_dir>/certs`.
 
 - ca-key.pem
 - ca.pem
@@ -76,33 +83,29 @@ First generate the cluster root ca. Run this script which will generate into `<p
 
 ## Kubernetes Master Node
 
-First generate the necessary files to start the kubernetes master node. This requires you to have already started the etcd dedicated cluster, and obtained those ips, which you will then need to set in an ENV variable `ETCD_CLUSTER_NODE_IPS` when running the script ot generate these files.
+Now you have the dedicated etcd cluster up and running and the certs you can generate the kubernetes master node. If you are following along and starting everything locally using vagrant use these values. Otherwise obtain the IPs of the etcd cluster by sshing and running `fleetctl list-machines`.
 
 ```sh
-# IMPORTANT: 
-# Set the env variable that the last two scripts will 
-# use. This is a comma delimited list of IPs of each
-# etcd cluster node.
-#
-# ETCD_CLUSTER_NODE_IPS=http://123.123.12.1:2379,http...
-#
-# If you are using the test stuff and vagrant then this will
-# be the address
+# IMPORTANT:
+# If you are using the test stuff and vagrant then these will be the addresses
 # ETCD_CLUSTER_NODE_IPS=http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379
-
-# Compile files for the Kubernetes master node
-# This will output into output/master
 ETCD_CLUSTER_NODE_IPS=http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379 ./scripts/compile_kubernetes_master_node.sh
 ```
 
-Now go start the box.
+You will need to get `outputs/master/certs/*` into the machine `/etc/kubernetes/ssl` during the provisioning process.
+
+**TODO**: write how to do this
+
+#### Vagrant
+
+Now go start the box. The supplied Vagrantfile will automatically put certs into the machine.
 
 ```sh
 cd output/master
 vagrant up
 ```
 
-If you ssh into this box you can see that it is connected to the etcd cluster and using it.
+If you ssh into this box you can see that it is connected to the etcd cluster.
 
 ```sh
 vagrant ssh
@@ -119,15 +122,32 @@ ifconfig
 # docker0's inet should be in the range specified
 ```
 
+## Kubectl
 
-## Break
+Now you have an etcd cluster up and a kubernetes master node up. You can connect to the cluster at this point using kubectl.
 
-Ok let's check what we have so far.
+First let's download kubectl on our local machine.
 
-- Dedicated ETCD cluster
-- Kubernetes Master Node
-- certs for master node, and admin
+```sh
+brew install kubectl
+kubectl version
+```
 
-What we have to do.
+#### Vagrant
 
-- 
+Running this script and giving it the ip of the master node will set up your kubectl to communicate with the vagrant master node.
+
+```
+# ./scripts/setup_kubectl.sh <MASTER NODE IP>
+# If you are following along this will be the IP assigned to the master node
+./scripts/setup_kubectl.sh 172.17.8.201
+```
+
+Now if you run kubectl you should see some stuff.
+
+```sh
+kubectl get nodes
+# should see the master node
+```
+
+## Kubernetes Minion Nodes
