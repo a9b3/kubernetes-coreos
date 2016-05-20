@@ -2,7 +2,7 @@
 # vim: set ft=yaml:
 
 write-files:
-  - path: /opt/openssl/openssl.cnf
+  - path: /etc/kubernetes/ssl/openssl.cnf
     content: |
       [req]
       req_extensions = v3_req
@@ -56,30 +56,153 @@ coreos:
           [Service]
           ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "{{POD_NETWORK}}" }'
       command: start
+
+    - name: setup-network-environment.service
+      command: start
+      content: |
+        [Unit]
+        Description=Setup Network Environment
+        Documentation=https://github.com/kelseyhightower/setup-network-environment
+        Requires=network-online.target
+        After=network-online.target
+
+        [Service]
+        ExecStartPre=-/usr/bin/mkdir -p /opt/bin
+        ExecStartPre=/usr/bin/curl -L \
+          -o /opt/bin/setup-network-environment \
+          -z /opt/bin/setup-network-environment \
+          https://github.com/kelseyhightower/setup-network-environment/releases/download/v1.0.0/setup-network-environment
+        ExecStartPre=/usr/bin/chmod +x /opt/bin/setup-network-environment
+        ExecStart=/opt/bin/setup-network-environment
+        RemainAfterExit=yes
+        Type=oneshot
+
     - name: generate-certs.service
       command: start
       content: |
         [Unit]
-        Description=Generate certs
+        Description=Generate master certs
 
         [Service]
         Environment="HOME=/root"
         Environment=MASTER_IP=$public_ipv4
-        ExecStartPre=/usr/bin/mkdir -p /opt/certs
-        ExecStartPre=/usr/bin/openssl genrsa -out /opt/certs/apiserver-key.pem 2048
-        ExecStartPre=/usr/bin/openssl req -new -key /opt/certs/apiserver-key.pem \
-          -out /opt/certs/apiserver.csr \
+        ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/ssl/
+        ExecStartPre=/usr/bin/openssl genrsa -out /etc/kubernetes/ssl/apiserver-key.pem 2048
+        ExecStartPre=/usr/bin/openssl req -new -key /etc/kubernetes/ssl/apiserver-key.pem \
+          -out /etc/kubernetes/ssl/apiserver.csr \
           -subj "/CN=kube-apiserver" \
-          -config /opt/openssl/openssl.cnf
-        ExecStartPre=/usr/bin/openssl x509 -req -in /opt/certs/apiserver.csr \
-          -CA /opt/certs/ca.pem \
-          -CAkey /opt/certs/ca-key.pem \
+          -config /etc/kubernetes/ssl/openssl.cnf
+        ExecStartPre=/usr/bin/openssl x509 -req -in /etc/kubernetes/ssl/apiserver.csr \
+          -CA /etc/kubernetes/ssl/ca.pem \
+          -CAkey /etc/kubernetes/ssl/ca-key.pem \
           -CAcreateserial \
-          -out /opt/certs/apiserver.pem \
+          -out /etc/kubernetes/ssl/apiserver.pem \
           -days 365 \
           -extensions v3_req \
-          -extfile /opt/openssl/openssl.cnf
-        ExecStart=/usr/bin/chmod 600 /opt/certs/*-key.pem \
-          /usr/bin/chown root:root /opt/certs/*-key.pem
+          -extfile /etc/kubernetes/ssl/openssl.cnf
+        ExecStartPre=/usr/bin/rm /etc/kubernetes/ssl/ca-key.pem
+        ExecStartPre=/usr/bin/chmod 600 /etc/kubernetes/ssl/apiserver-key.pem
+        ExecStart=/usr/bin/chown root:root /etc/kubernetes/ssl/apiserver-key.pem
         RemainAfterExit=yes
         Type=oneshot
+
+    - name: download-kubernetes-binaries.service
+      command: start
+      content: |
+        [Unit]
+        Description=Download Kubernetes Binaries
+
+        [Service]
+        ExecStartPre=/usr/bin/mkdir -p /opt/bin
+        ExecStartPre=/usr/bin/curl -L \
+          -o /opt/bin/kubectl \
+          -z /opt/bin/kubectl \
+          https://storage.googleapis.com/kubernetes-release/release/{{K8S_VERSION}}/bin/linux/amd64/kubectl
+        ExecStart=/usr/bin/chmod -R +x /opt/bin
+
+    - name: generate-serviceaccount-key.service
+      command: start
+      content: |
+        [Unit]
+        Description=Generate service-account key file
+
+        [Service]
+        ExecStartPre=-/usr/bin/mkdir -p /opt/bin
+        ExecStart=/usr/bin/openssl genrsa -out /opt/bin/kube-serviceaccount.key 2048 2>/dev/null
+        RemainAfterExit=yes
+        Type=oneshot
+
+    - name: kube-apiserver.service
+      command: start
+      content: |
+        [Unit]
+        Description=Kubernetes Api Server
+        Requires=etcd2.service fleet.service flanneld.service docker.service generate-certs.service download-kubernetes-binaries.service setup-network-environment.service
+        After=etcd2.service fleet.service flanneld.service docker.service generate-certs.service download-kubernetes-binaries.service setup-network-environment.service
+
+        [Service]
+        EnvironmentFile=/etc/network-environment
+        ExecStartPre=/usr/bin/mkdir -p /opt/bin
+        ExecStartPre=/usr/bin/curl -L \
+          -o /opt/bin/kube-apiserver \
+          -z /opt/bin/kube-apiserver \
+          https://storage.googleapis.com/kubernetes-release/release/{{K8S_VERSION}}/bin/linux/amd64/kube-apiserver
+        ExecStartPre=/usr/bin/chmod -R +x /opt/bin/kube-apiserver
+        ExecStart=/opt/bin/kube-apiserver \
+          --service-account-key-file=/etc/kubernetes/ssl/apiserver-key.pem \
+          --service-account-lookup=false \
+          --admission-control=NamespaceLifecycle,NamespaceAutoProvision,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota \
+          --runtime-config=api/v1 \
+          --allow-privileged=true \
+          --insecure-bind-address=0.0.0.0 \
+          --insecure-port=8080 \
+          --kubelet-https=true \
+          --secure-port=6443 \
+          --service-cluster-ip-range={{SERVICE_IP_RANGE}} \
+          --etcd-servers={{ETCD_CLUSTER_NODE_IPS}} \
+          --bind-address=${DEFAULT_IPV4} \
+          --logtostderr=true
+        Restart=always
+        RestartSec=10
+
+    - name: kube-controller-manager.service
+      command: start
+      content: |
+        [Unit]
+        Description=Kubernetes Controller Manager
+        Requires=kube-apiserver.service
+        After=kube-apiserver.service
+
+        [Service]
+        ExecStartPre=/usr/bin/mkdir -p /opt/bin
+        ExecStartPre=/usr/bin/curl -L \
+          -o /opt/bin/kube-controller-manager \
+          -z /opt/bin/kube-controller-manager \
+          https://storage.googleapis.com/kubernetes-release/release/{{K8S_VERSION}}/bin/linux/amd64/kube-controller-manager
+        ExecStartPre=/usr/bin/chmod -R +x /opt/bin/kube-controller-manager
+        ExecStart=/opt/bin/kube-controller-manager \
+          --service-account-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem \
+          --master=127.0.0.1:8080 \
+          --logtostderr=true
+        Restart=always
+        RestartSec=10
+
+    - name: kube-scheduler.service
+      command: start
+      content: |
+        [Unit]
+        Description=Kubernetes Scheduler
+        Requires=kube-apiserver.service
+        After=kube-apiserver.service
+
+        [Service]
+        ExecStartPre=/usr/bin/mkdir -p /opt/bin
+        ExecStartPre=/usr/bin/curl -L \
+          -o /opt/bin/kube-scheduler \
+          -z /opt/bin/kube-scheduler \
+          https://storage.googleapis.com/kubernetes-release/release/{{K8S_VERSION}}/bin/linux/amd64/kube-scheduler
+        ExecStartPre=/usr/bin/chmod -R +x /opt/bin/kube-scheduler
+        ExecStart=/opt/bin/kube-scheduler \
+          --master=127.0.0.1:8080 \
+        Restart=always
+        RestartSec=10
