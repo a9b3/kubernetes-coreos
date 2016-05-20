@@ -1,3 +1,4 @@
 output
 certs
 .srl
+scripts/config.env
