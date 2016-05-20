@@ -134,7 +134,9 @@ coreos:
           https://storage.googleapis.com/kubernetes-release/release/{{K8S_VERSION}}/bin/linux/amd64/kube-apiserver
         ExecStartPre=/usr/bin/chmod -R +x /opt/bin/kube-apiserver
         ExecStart=/opt/bin/kube-apiserver \
-          --service-account-key-file=/etc/kubernetes/ssl/apiserver-key.pem \
+          --tls-cert-file=/etc/kubernetes/ssl/apiserver.pem \
+          --tls-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem \
+          # --service-account-key-file=/etc/kubernetes/ssl/apiserver-key.pem \
           --service-account-lookup=false \
           --admission-control=NamespaceLifecycle,NamespaceAutoProvision,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota \
           --runtime-config=api/v1 \
