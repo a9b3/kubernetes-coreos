@@ -1,5 +1,11 @@
 # Kubernetes Cluster on CoreOS
 
+Install this. I am using this to do the templating.
+
+```sh
+npm i -g hbs-templater
+```
+
 Overview parts of the cluster.
 
 1. Dedicated ETCD cluster.
@@ -20,6 +26,9 @@ Overview parts of the cluster.
 ETCD_CLUSTER_NODE_IPS=http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379 ./scripts/compile_kubernetes_master_node.sh
 # => outputs/master
 # Get outputs/master/certs/* into the machine /etc/kubernetes/ssl
+
+MASTER_IP=172.17.8.201 ETCD_CLUSTER_NODE_IPS=http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379 ./scripts/compile_kubernetes_minion_node.sh
+# => outputs/minion
 ```
 
 ## Generate config.env
@@ -151,3 +160,9 @@ kubectl get nodes
 ```
 
 ## Kubernetes Minion Nodes
+
+You will need the ip of the master node and the ips of the etcd cluster nodes.
+
+```sh
+MASTER_IP=172.17.8.201 ETCD_CLUSTER_NODE_IPS=http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379 ./scripts/compile_kubernetes_minion_node.sh
+```

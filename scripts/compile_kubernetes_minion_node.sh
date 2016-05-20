@@ -9,6 +9,7 @@ cd "$parent_path"
 source ./config.env
 
 MINION_PARAMS="{
+  \"MASTER_IP\": \"$MASTER_IP\",
   \"ETCD_CLUSTER_NODE_IPS\": \"$ETCD_CLUSTER_NODE_IPS\",
   \"ETCD_DISCOVERY_TOKEN\": \"$ETCD_DISCOVERY_TOKEN\",
   \"CLUSTER_SIZE\": \"$MINION_CLUSTER_SIZE\",

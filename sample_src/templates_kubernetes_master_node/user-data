@@ -120,18 +120,6 @@ coreos:
           https://storage.googleapis.com/kubernetes-release/release/{{K8S_VERSION}}/bin/linux/amd64/kubectl
         ExecStart=/usr/bin/chmod -R +x /opt/bin
 
-    - name: generate-serviceaccount-key.service
-      command: start
-      content: |
-        [Unit]
-        Description=Generate service-account key file
-
-        [Service]
-        ExecStartPre=-/usr/bin/mkdir -p /opt/bin
-        ExecStart=/usr/bin/openssl genrsa -out /opt/bin/kube-serviceaccount.key 2048 2>/dev/null
-        RemainAfterExit=yes
-        Type=oneshot
-
     - name: kube-apiserver.service
       command: start
       content: |

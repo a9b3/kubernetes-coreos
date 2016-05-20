@@ -2,7 +2,7 @@
 # vim: set ft=yaml:
 
 write-files:
-  - path: /opt/openssl/openssl.cnf
+  - path: /etc/kubernetes/ssl/openssl.cnf
     content: |
       [req]
       req_extensions = v3_req
@@ -14,6 +14,15 @@ write-files:
       subjectAltName = @alt_names
       [alt_names]
       IP.1 = $ENV::WORKER_IP
+  - path: /opt/bin/wupiao
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # [w]ait [u]ntil [p]ort [i]s [a]ctually [o]pen
+      [ -n "$1" ] && [ -n "$2" ] && while ! curl --output /dev/null \
+        --silent --head --fail \
+        http://${1}:${2}; do sleep 1 && echo -n .; done;
+      exit $?
 
 hostname: kubernetes-minion
 
@@ -32,7 +41,7 @@ coreos:
     listen-peer-urls: http://$private_ipv4:2380,http://$private_ipv4:7001
   fleet:
     etcd_servers: {{ETCD_CLUSTER_NODE_IPS}}
-    metadata: role=kubernetes-master
+    metadata: role=kubernetes-minion
     public-ip: $public_ipv4
   flannel:
     interface: $public_ipv4
@@ -51,6 +60,27 @@ coreos:
           [Service]
           ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "{{POD_NETWORK}}" }'
       command: start
+
+    - name: setup-network-environment.service
+      command: start
+      content: |
+        [Unit]
+        Description=Setup Network Environment
+        Documentation=https://github.com/kelseyhightower/setup-network-environment
+        Requires=network-online.target
+        After=network-online.target
+
+        [Service]
+        ExecStartPre=-/usr/bin/mkdir -p /opt/bin
+        ExecStartPre=/usr/bin/curl -L \
+          -o /opt/bin/setup-network-environment \
+          -z /opt/bin/setup-network-environment \
+          https://github.com/kelseyhightower/setup-network-environment/releases/download/v1.0.0/setup-network-environment
+        ExecStartPre=/usr/bin/chmod +x /opt/bin/setup-network-environment
+        ExecStart=/opt/bin/setup-network-environment
+        RemainAfterExit=yes
+        Type=oneshot
+
     - name: generate-certs.service
       command: start
       content: |
@@ -61,19 +91,73 @@ coreos:
         Environment="HOME=/root"
         Environment=WORKER_IP=$public_ipv4
         Environment=WORKER_FQDN=minion$public_ipv4
-        ExecStartPre=/usr/bin/mkdir -p /opt/certs
-        ExecStartPre=/usr/bin/openssl genrsa -out /opts/certs/${WORKER_FQDN}-worker-key.pem 2048
-        ExecStartPre=/usr/bin/openssl req -new -key /opts/certs/${WORKER_FQDN}-worker-key.pem \
-          -out /opts/certs/${WORKER_FQDN}-worker.csr \
+        ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/ssl
+        ExecStartPre=/usr/bin/openssl genrsa -out /etc/kubernetes/ssl/${WORKER_FQDN}-worker-key.pem 2048
+        ExecStartPre=/usr/bin/openssl req -new -key /etc/kubernetes/ssl/${WORKER_FQDN}-worker-key.pem \
+          -out /etc/kubernetes/ssl/${WORKER_FQDN}-worker.csr \
           -subj "/CN=${WORKER_FQDN}" \
-          -config ./worker-openssl.cnf
-        ExecStart=/usr/bin/openssl x509 -req -in /opts/certs/${WORKER_FQDN}-worker.csr \
-          -CA /opts/certs/ca.pem \
-          -CAkey /opts/certs/ca-key.pem \
+          -config /etc/kubernetes/ssl/openssl.cnf
+        ExecStart=/usr/bin/openssl x509 -req -in /etc/kubernetes/ssl/${WORKER_FQDN}-worker.csr \
+          -CA /etc/kubernetes/ssl/ca.pem \
+          -CAkey /etc/kubernetes/ssl/ca-key.pem \
           -CAcreateserial \
-          -out /opts/certs/${WORKER_FQDN}-worker.pem \
+          -out /etc/kubernetes/ssl/${WORKER_FQDN}-worker.pem \
           -days 365 \
           -extensions v3_req \
-          -extfile ./worker-openssl.cnf
+          -extfile /etc/kubernetes/ssl/openssl.cnf
         RemainAfterExit=yes
         Type=oneshot
+
+    - name: kube-proxy.service
+      command: start
+      content: |
+        [Unit]
+        Description=Kubernetes Proxy
+        Documentation=https://github.com/kubernetes/kubernetes
+        Requires=setup-network-environment.service
+        After=setup-network-environment.service
+
+        [Service]
+        ExecStartPre=/usr/bin/curl -L \
+          -o /opt/bin/kube-proxy \
+          -z /opt/bin/kube-proxy \
+          https://storage.googleapis.com/kubernetes-release/release/{{K8S_VERSION}}/bin/linux/amd64/kube-proxy
+        ExecStartPre=/usr/bin/chmod +x /opt/bin/kube-proxy
+        # wait for kubernetes master to be up and ready
+        ExecStartPre=/opt/bin/wupiao {{MASTER_IP}} 8080
+        ExecStart=/opt/bin/kube-proxy \
+          --master={{MASTER_IP}}:8080 \
+          --logtostderr=true
+        Restart=always
+        RestartSec=10
+
+    - name: kube-kubelet.service
+      command: start
+      content: |
+        [Unit]
+        Description=Kubernetes Kubelet
+        Documentation=https://github.com/kubernetes/kubernetes
+        Requires=setup-network-environment.service
+        After=setup-network-environment.service
+
+        [Service]
+        EnvironmentFile=/etc/network-environment
+        ExecStartPre=/usr/bin/curl -L \
+          -o /opt/bin/kubelet \
+          -z /opt/bin/kubelet \
+          https://storage.googleapis.com/kubernetes-release/release/{{K8S_VERSION}}/bin/linux/amd64/kubelet
+        execstartpre=/usr/bin/chmod +x /opt/bin/kubelet
+        # wait for kubernetes master to be up and ready
+        ExecStartPre=/opt/bin/wupiao {{MASTER_IP}} 8080
+        ExecStart=/opt/bin/kubelet \
+          --address=0.0.0.0 \
+          --port=10250 \
+          --hostname-override=${DEFAULT_IPV4} \
+          --api-servers={{MASTER_IP}}:8080 \
+          --allow-privileged=true \
+          --logtostderr=true \
+          --cadvisor-port=4194 \
+          --healthz-bind-address=0.0.0.0 \
+          --healthz-port=10248
+        Restart=always
+        RestartSec=10
