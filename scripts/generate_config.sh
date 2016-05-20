@@ -8,7 +8,7 @@ cd "$parent_path"
 
 ETCD_CLUSTER_SIZE=3
 MASTER_CLUSTER_SIZE=1
-MINION_CLUSTER_SIZE=3
+MINION_CLUSTER_SIZE=1
 
 # Flannel range for docker containers
 POD_NETWORK='10.2.0.0/16'
