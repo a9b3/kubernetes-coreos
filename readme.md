@@ -140,7 +140,7 @@ Running this script and giving it the ip of the master node will set up your kub
 ```
 # ./scripts/setup_kubectl.sh <MASTER NODE IP>
 # If you are following along this will be the IP assigned to the master node
-./scripts/setup_kubectl.sh 172.17.8.201
+./setup_kubectl.sh 172.17.8.201
 ```
 
 Now if you run kubectl you should see some stuff.

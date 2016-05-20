@@ -1,11 +1,10 @@
 parent_path=$( cd "$(dirname "${BASH_SOURCE}")" ; pwd -P )
 cd "$parent_path"
-source ./config.env
 
 MASTER_IP=http://$1:8080
-CA_CERT=/Users/sam/Projects/devops/do-kubernetes/certs/ca.pem
-ADMIN_KEY=/Users/sam/Projects/devops/do-kubernetes/certs/admin-key.pem
-ADMIN_CERT=/Users/sam/Projects/devops/do-kubernetes/certs/admin.pem
+CA_CERT=$(pwd)/certs/ca.pem
+ADMIN_KEY=$(pwd)/certs/admin-key.pem
+ADMIN_CERT=$(pwd)/certs/admin.pem
 
 echo "MASTER_IP=$MASTER_IP"
 
