@@ -23,6 +23,10 @@ write-files:
         --silent --head --fail \
         http://${1}:${2}; do sleep 1 && echo -n .; done;
       exit $?
+  - path: /etc/flannel/options.env
+    content: |
+      FLANNELD_IFACE=$public_ipv4
+      FLANNELD_ETCD_ENDPOINTS={{ETCD_CLUSTER_NODE_IPS}}
 
 hostname: kubernetes-minion
 
@@ -67,8 +71,8 @@ coreos:
         [Unit]
         Description=Setup Network Environment
         Documentation=https://github.com/kelseyhightower/setup-network-environment
-        Requires=network-online.target
-        After=network-online.target
+        Requires=network-online.target etcd2.service flannel.service
+        After=network-online.target etcd2.service flannel.service
 
         [Service]
         ExecStartPre=-/usr/bin/mkdir -p /opt/bin
@@ -144,6 +148,7 @@ coreos:
         [Service]
         EnvironmentFile=/etc/network-environment
         Environment=WORKER_FQDN=minion$public_ipv4
+        Environment=WORKER_IP=$public_ipv4
         ExecStartPre=/usr/bin/curl -L \
           -o /opt/bin/kubelet \
           -z /opt/bin/kubelet \
@@ -160,7 +165,7 @@ coreos:
           --cluster-domain=cluster.local \
           --healthz-bind-address=0.0.0.0 \
           --healthz-port=10248 \
-          --hostname-override=${DEFAULT_IPV4} \
+          --hostname-override=${WORKER_IP} \
           --logtostderr=true \
           --port=10250 \
           --register-node=true \
