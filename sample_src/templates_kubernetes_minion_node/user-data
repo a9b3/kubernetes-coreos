@@ -63,13 +63,6 @@ coreos:
 
           [Service]
           ExecStartPre=/usr/bin/ln -sf /etc/flannel/options.env /run/flannel/options.env
-      # - name: 50-network-config.conf
-      #   content: |
-      #     [Unit]
-      #     Requires=etcd2.service
-      #
-      #     [Service]
-      #     ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "{{POD_NETWORK}}" }'
       command: start
 
     - name: setup-network-environment.service
