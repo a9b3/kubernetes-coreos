@@ -78,8 +78,8 @@ coreos:
         [Unit]
         Description=Setup Network Environment
         Documentation=https://github.com/kelseyhightower/setup-network-environment
-        Requires=network-online.target etcd2.service flannel.service
-        After=network-online.target etcd2.service flannel.service
+        Requires=network-online.target etcd2.service flanneld.service
+        After=network-online.target etcd2.service flanneld.service
 
         [Service]
         ExecStartPre=-/usr/bin/mkdir -p /opt/bin
