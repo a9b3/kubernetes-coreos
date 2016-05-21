@@ -132,43 +132,6 @@ coreos:
         Restart=always
         RestartSec=10
 
-    # - name: kube-kubelet.service
-    #   command: start
-    #   content: |
-    #     [Unit]
-    #     Description=Kubernetes Kubelet
-    #     Documentation=https://github.com/kubernetes/kubernetes
-    #     Requires=setup-network-environment.service
-    #     After=setup-network-environment.service
-    #
-    #     [Service]
-    #     EnvironmentFile=/etc/network-environment
-    #     Environment=WORKER_FQDN=minion$public_ipv4
-    #     ExecStartPre=/usr/bin/curl -L \
-    #       -o /opt/bin/kubelet \
-    #       -z /opt/bin/kubelet \
-    #       https://storage.googleapis.com/kubernetes-release/release/{{K8S_VERSION}}/bin/linux/amd64/kubelet
-    #     ExecStartPre=/usr/bin/chmod +x /opt/bin/kubelet
-    #     # wait for kubernetes master to be up and ready
-    #     ExecStartPre=/opt/bin/wupiao {{MASTER_IP}} 8080
-    #     ExecStart=/opt/bin/kubelet \
-    #       --address=0.0.0.0 \
-    #       --allow-privileged=true \
-    #       --api-servers=http://{{MASTER_IP}}:8080 \
-    #       --cadvisor-port=4194 \
-    #       --cluster-dns={{DNS_SERVICE_IP}} \
-    #       --cluster-domain=cluster.local \
-    #       --healthz-bind-address=0.0.0.0 \
-    #       --healthz-port=10248 \
-    #       --hostname-override=${DEFAULT_IPV4} \
-    #       --logtostderr=true \
-    #       --port=10250 \
-    #       --register-node=true \
-    #       --tls-cert-file=/etc/kubernetes/ssl/${WORKER_FQDN}-worker.pem \
-    #       --tls-private-key-file=/etc/kubernetes/ssl/${WORKER_FQDN}-worker-key.pem
-    #     Restart=always
-    #     RestartSec=10
-
     - name: kube-kubelet.service
       command: start
       content: |
@@ -180,6 +143,7 @@ coreos:
 
         [Service]
         EnvironmentFile=/etc/network-environment
+        Environment=WORKER_FQDN=minion$public_ipv4
         ExecStartPre=/usr/bin/curl -L \
           -o /opt/bin/kubelet \
           -z /opt/bin/kubelet \
@@ -189,13 +153,18 @@ coreos:
         ExecStartPre=/opt/bin/wupiao {{MASTER_IP}} 8080
         ExecStart=/opt/bin/kubelet \
           --address=0.0.0.0 \
-          --port=10250 \
-          --hostname-override=${DEFAULT_IPV4} \
-          --api-servers={{MASTER_IP}}:8080 \
           --allow-privileged=true \
-          --logtostderr=true \
+          --api-servers=http://{{MASTER_IP}}:8080 \
           --cadvisor-port=4194 \
+          --cluster-dns={{DNS_SERVICE_IP}} \
+          --cluster-domain=cluster.local \
           --healthz-bind-address=0.0.0.0 \
-          --healthz-port=10248
+          --healthz-port=10248 \
+          --hostname-override=${DEFAULT_IPV4} \
+          --logtostderr=true \
+          --port=10250 \
+          --register-node=true \
+          --tls-cert-file=/etc/kubernetes/ssl/${WORKER_FQDN}-worker.pem \
+          --tls-private-key-file=/etc/kubernetes/ssl/${WORKER_FQDN}-worker-key.pem
         Restart=always
         RestartSec=10
