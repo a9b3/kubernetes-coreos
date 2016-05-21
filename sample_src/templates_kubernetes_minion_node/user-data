@@ -14,6 +14,34 @@ write-files:
       subjectAltName = @alt_names
       [alt_names]
       IP.1 = $ENV::WORKER_IP
+
+  - path: /opt/bin/generate-certs.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # generate-certs
+      # Env var
+      #
+      # WORKER_IP
+      # WORKER_FQDN
+
+      if [ ! -f /etc/kubernetes/ssl/$WORKER_FQDN-worker.pem ]; then
+        /usr/bin/mkdir -p /etc/kubernetes/ssl
+        /usr/bin/openssl genrsa -out /etc/kubernetes/ssl/$WORKER_FQDN-worker-key.pem 2048
+        /usr/bin/openssl req -new -key /etc/kubernetes/ssl/$WORKER_FQDN-worker-key.pem \
+          -out /etc/kubernetes/ssl/$WORKER_FQDN-worker.csr \
+          -subj "/CN=$WORKER_FQDN" \
+          -config /etc/kubernetes/ssl/openssl.cnf
+        /usr/bin/openssl x509 -req -in /etc/kubernetes/ssl/$WORKER_FQDN-worker.csr \
+          -CA /etc/kubernetes/ssl/ca.pem \
+          -CAkey /etc/kubernetes/ssl/ca-key.pem \
+          -CAcreateserial \
+          -out /etc/kubernetes/ssl/$WORKER_FQDN-worker.pem \
+          -days 365 \
+          -extensions v3_req \
+          -extfile /etc/kubernetes/ssl/openssl.cnf
+      fi
+
   - path: /opt/bin/wupiao
     permissions: '0755'
     content: |
@@ -95,20 +123,7 @@ coreos:
         Environment="HOME=/root"
         Environment=WORKER_IP=$public_ipv4
         Environment=WORKER_FQDN=minion$public_ipv4
-        ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/ssl
-        ExecStartPre=/usr/bin/openssl genrsa -out /etc/kubernetes/ssl/${WORKER_FQDN}-worker-key.pem 2048
-        ExecStartPre=/usr/bin/openssl req -new -key /etc/kubernetes/ssl/${WORKER_FQDN}-worker-key.pem \
-          -out /etc/kubernetes/ssl/${WORKER_FQDN}-worker.csr \
-          -subj "/CN=${WORKER_FQDN}" \
-          -config /etc/kubernetes/ssl/openssl.cnf
-        ExecStart=/usr/bin/openssl x509 -req -in /etc/kubernetes/ssl/${WORKER_FQDN}-worker.csr \
-          -CA /etc/kubernetes/ssl/ca.pem \
-          -CAkey /etc/kubernetes/ssl/ca-key.pem \
-          -CAcreateserial \
-          -out /etc/kubernetes/ssl/${WORKER_FQDN}-worker.pem \
-          -days 365 \
-          -extensions v3_req \
-          -extfile /etc/kubernetes/ssl/openssl.cnf
+        ExecStart=/opt/bin/generate-certs.sh
         RemainAfterExit=yes
         Type=oneshot
 
