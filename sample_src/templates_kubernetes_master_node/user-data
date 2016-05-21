@@ -19,6 +19,31 @@ write-files:
       DNS.4 = kubernetes.default.svc.cluster.local
       IP.1 = {{KUBERNETES_SERVICE_IP}}
       IP.2 = $ENV::MASTER_IP
+  - path: /opt/bin/generate-certs.sh
+    permission: '0755'
+    content: |
+      #!/bin/bash
+      # generate-certs
+      #
+      # Env Var
+      # MASTER_IP
+
+      if [ ! -f /etc/kubernetes/ssl/apiserver-key.pem ]; then
+        /usr/bin/mkdir -p /etc/kubernetes/ssl/
+        /usr/bin/openssl genrsa -out /etc/kubernetes/ssl/apiserver-key.pem 2048
+        /usr/bin/openssl req -new -key /etc/kubernetes/ssl/apiserver-key.pem \
+          -out /etc/kubernetes/ssl/apiserver.csr \
+          -subj "/CN=kube-apiserver" \
+          -config /etc/kubernetes/ssl/openssl.cnf
+        /usr/bin/openssl x509 -req -in /etc/kubernetes/ssl/apiserver.csr \
+          -CA /etc/kubernetes/ssl/ca.pem \
+          -CAkey /etc/kubernetes/ssl/ca-key.pem \
+          -CAcreateserial \
+          -out /etc/kubernetes/ssl/apiserver.pem \
+          -days 365 \
+          -extensions v3_req \
+          -extfile /etc/kubernetes/ssl/openssl.cnf
+      fi
 
 hostname: kubernetes-master
 
@@ -86,20 +111,7 @@ coreos:
         [Service]
         Environment="HOME=/root"
         Environment=MASTER_IP=$public_ipv4
-        ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/ssl/
-        ExecStartPre=/usr/bin/openssl genrsa -out /etc/kubernetes/ssl/apiserver-key.pem 2048
-        ExecStartPre=/usr/bin/openssl req -new -key /etc/kubernetes/ssl/apiserver-key.pem \
-          -out /etc/kubernetes/ssl/apiserver.csr \
-          -subj "/CN=kube-apiserver" \
-          -config /etc/kubernetes/ssl/openssl.cnf
-        ExecStart=/usr/bin/openssl x509 -req -in /etc/kubernetes/ssl/apiserver.csr \
-          -CA /etc/kubernetes/ssl/ca.pem \
-          -CAkey /etc/kubernetes/ssl/ca-key.pem \
-          -CAcreateserial \
-          -out /etc/kubernetes/ssl/apiserver.pem \
-          -days 365 \
-          -extensions v3_req \
-          -extfile /etc/kubernetes/ssl/openssl.cnf
+        ExecStart=/opt/bin/generate-certs.sh
         RemainAfterExit=yes
         Type=oneshot
 
