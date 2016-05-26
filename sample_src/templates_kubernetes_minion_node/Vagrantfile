@@ -19,7 +19,7 @@ $vm_gui = false
 $vm_memory = 1024
 $vm_cpus = 1
 $shared_folders = {
-  "certs": "/etc/kubernetes/ssl/"
+  "certs": "/etc/ssl/certs/"
 }
 $forwarded_ports = {}
 

@@ -2,7 +2,7 @@
 # vim: set ft=yaml:
 
 write-files:
-  - path: /etc/kubernetes/ssl/openssl.cnf
+  - path: /etc/ssl/certs/openssl.cnf
     content: |
       [req]
       req_extensions = v3_req
@@ -25,21 +25,21 @@ write-files:
       # WORKER_IP
       # WORKER_FQDN
 
-      if [ ! -f /etc/kubernetes/ssl/$WORKER_FQDN-worker.pem ]; then
-        /usr/bin/mkdir -p /etc/kubernetes/ssl
-        /usr/bin/openssl genrsa -out /etc/kubernetes/ssl/$WORKER_FQDN-worker-key.pem 2048
-        /usr/bin/openssl req -new -key /etc/kubernetes/ssl/$WORKER_FQDN-worker-key.pem \
-          -out /etc/kubernetes/ssl/$WORKER_FQDN-worker.csr \
+      if [ ! -f /etc/ssl/certs/$WORKER_FQDN-worker.pem ]; then
+        /usr/bin/mkdir -p /etc/ssl/certs
+        /usr/bin/openssl genrsa -out /etc/ssl/certs/$WORKER_FQDN-worker-key.pem 2048
+        /usr/bin/openssl req -new -key /etc/ssl/certs/$WORKER_FQDN-worker-key.pem \
+          -out /etc/ssl/certs/$WORKER_FQDN-worker.csr \
           -subj "/CN=$WORKER_FQDN" \
-          -config /etc/kubernetes/ssl/openssl.cnf
-        /usr/bin/openssl x509 -req -in /etc/kubernetes/ssl/$WORKER_FQDN-worker.csr \
-          -CA /etc/kubernetes/ssl/ca.pem \
-          -CAkey /etc/kubernetes/ssl/ca-key.pem \
+          -config /etc/ssl/certs/openssl.cnf
+        /usr/bin/openssl x509 -req -in /etc/ssl/certs/$WORKER_FQDN-worker.csr \
+          -CA /etc/ssl/certs/ca.pem \
+          -CAkey /etc/ssl/certs/ca-key.pem \
           -CAcreateserial \
-          -out /etc/kubernetes/ssl/$WORKER_FQDN-worker.pem \
+          -out /etc/ssl/certs/$WORKER_FQDN-worker.pem \
           -days 365 \
           -extensions v3_req \
-          -extfile /etc/kubernetes/ssl/openssl.cnf
+          -extfile /etc/ssl/certs/openssl.cnf
       fi
 
   - path: /opt/bin/wupiao
@@ -184,7 +184,7 @@ coreos:
           --logtostderr=true \
           --port=10250 \
           --register-node=true \
-          --tls-cert-file=/etc/kubernetes/ssl/${WORKER_FQDN}-worker.pem \
-          --tls-private-key-file=/etc/kubernetes/ssl/${WORKER_FQDN}-worker-key.pem
+          --tls-cert-file=/etc/ssl/certs/${WORKER_FQDN}-worker.pem \
+          --tls-private-key-file=/etc/ssl/certs/${WORKER_FQDN}-worker-key.pem
         Restart=always
         RestartSec=10

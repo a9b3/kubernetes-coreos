@@ -2,7 +2,7 @@
 # vim: set ft=yaml:
 
 write-files:
-  - path: /etc/kubernetes/ssl/openssl.cnf
+  - path: /etc/ssl/certs/openssl.cnf
     content: |
       [req]
       req_extensions = v3_req
@@ -28,21 +28,21 @@ write-files:
       # Env Var
       # MASTER_IP
 
-      if [ ! -f /etc/kubernetes/ssl/apiserver-key.pem ]; then
-        /usr/bin/mkdir -p /etc/kubernetes/ssl/
-        /usr/bin/openssl genrsa -out /etc/kubernetes/ssl/apiserver-key.pem 2048
-        /usr/bin/openssl req -new -key /etc/kubernetes/ssl/apiserver-key.pem \
-          -out /etc/kubernetes/ssl/apiserver.csr \
+      if [ ! -f /etc/ssl/certs/apiserver-key.pem ]; then
+        /usr/bin/mkdir -p /etc/ssl/certs/
+        /usr/bin/openssl genrsa -out /etc/ssl/certs/apiserver-key.pem 2048
+        /usr/bin/openssl req -new -key /etc/ssl/certs/apiserver-key.pem \
+          -out /etc/ssl/certs/apiserver.csr \
           -subj "/CN=kube-apiserver" \
-          -config /etc/kubernetes/ssl/openssl.cnf
-        /usr/bin/openssl x509 -req -in /etc/kubernetes/ssl/apiserver.csr \
-          -CA /etc/kubernetes/ssl/ca.pem \
-          -CAkey /etc/kubernetes/ssl/ca-key.pem \
+          -config /etc/ssl/certs/openssl.cnf
+        /usr/bin/openssl x509 -req -in /etc/ssl/certs/apiserver.csr \
+          -CA /etc/ssl/certs/ca.pem \
+          -CAkey /etc/ssl/certs/ca-key.pem \
           -CAcreateserial \
-          -out /etc/kubernetes/ssl/apiserver.pem \
+          -out /etc/ssl/certs/apiserver.pem \
           -days 365 \
           -extensions v3_req \
-          -extfile /etc/kubernetes/ssl/openssl.cnf
+          -extfile /etc/ssl/certs/openssl.cnf
       fi
 
 hostname: kubernetes-master
@@ -146,9 +146,9 @@ coreos:
           https://storage.googleapis.com/kubernetes-release/release/{{K8S_VERSION}}/bin/linux/amd64/kube-apiserver
         ExecStartPre=/usr/bin/chmod -R +x /opt/bin/kube-apiserver
         ExecStart=/opt/bin/kube-apiserver \
-          --tls-cert-file=/etc/kubernetes/ssl/apiserver.pem \
-          --tls-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem \
-          # --service-account-key-file=/etc/kubernetes/ssl/apiserver-key.pem \
+          --tls-cert-file=/etc/ssl/certs/apiserver.pem \
+          --tls-private-key-file=/etc/ssl/certs/apiserver-key.pem \
+          # --service-account-key-file=/etc/ssl/certs/apiserver-key.pem \
           --service-account-lookup=false \
           --admission-control=NamespaceLifecycle,NamespaceAutoProvision,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota \
           --runtime-config=api/v1 \
@@ -180,7 +180,7 @@ coreos:
           https://storage.googleapis.com/kubernetes-release/release/{{K8S_VERSION}}/bin/linux/amd64/kube-controller-manager
         ExecStartPre=/usr/bin/chmod -R +x /opt/bin/kube-controller-manager
         ExecStart=/opt/bin/kube-controller-manager \
-          --service-account-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem \
+          --service-account-private-key-file=/etc/ssl/certs/apiserver-key.pem \
           --master=127.0.0.1:8080 \
           --logtostderr=true
         Restart=always

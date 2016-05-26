@@ -34,7 +34,7 @@ Overview parts of the cluster.
 
 ETCD_CLUSTER_NODE_IPS=http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379 ./scripts/compile_kubernetes_master_node.sh
 # => outputs/master
-# Get outputs/master/certs/* into the machine /etc/kubernetes/ssl
+# Get outputs/master/certs/* into the machine /etc/ssl/certs
 
 # Start master node and obtain ip
 
@@ -115,7 +115,7 @@ Now you have the dedicated etcd cluster up and running and the certs you can gen
 ETCD_CLUSTER_NODE_IPS=http://172.17.8.101:2379,http://172.17.8.102:2379,http://172.17.8.103:2379 ./scripts/compile_kubernetes_master_node.sh
 ```
 
-You will need to get `outputs/master/certs/*` into the machine `/etc/kubernetes/ssl` during the provisioning process.
+You will need to get `outputs/master/certs/*` into the machine `/etc/ssl/certs` during the provisioning process.
 
 **TODO**: write how to do this
 
