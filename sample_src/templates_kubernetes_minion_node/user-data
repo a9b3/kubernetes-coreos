@@ -1,6 +1,8 @@
 #cloud-config
 # vim: set ft=yaml:
 
+hostname: kubernetes-minion
+
 write-files:
   - path: /etc/ssl/certs/openssl.cnf
     content: |
@@ -55,8 +57,6 @@ write-files:
     content: |
       FLANNELD_IFACE=$public_ipv4
       FLANNELD_ETCD_ENDPOINTS={{ETCD_CLUSTER_NODE_IPS}}
-
-hostname: kubernetes-minion
 
 coreos:
   etcd2:

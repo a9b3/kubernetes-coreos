@@ -1,6 +1,8 @@
 #cloud-config
 # vim: set ft=yaml:
 
+hostname: kubernetes-master
+
 write-files:
   - path: /etc/ssl/certs/openssl.cnf
     content: |
@@ -19,6 +21,7 @@ write-files:
       DNS.4 = kubernetes.default.svc.cluster.local
       IP.1 = {{KUBERNETES_SERVICE_IP}}
       IP.2 = $ENV::MASTER_IP
+
   - path: /opt/bin/generate-certs.sh
     permission: '0755'
     content: |
@@ -44,8 +47,6 @@ write-files:
           -extensions v3_req \
           -extfile /etc/ssl/certs/openssl.cnf
       fi
-
-hostname: kubernetes-master
 
 coreos:
   etcd2:
