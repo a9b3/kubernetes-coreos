@@ -28,6 +28,7 @@ hbs-templater compile --params "$MINION_PARAMS" \
   -l --overwrite
 
 echo "Copying over CA certs..."
+rm -rf ../output/minion/certs
 mkdir ../output/minion/certs
 cp ../certs/ca.pem ../output/minion/certs
 cp ../certs/ca-key.pem ../output/minion/certs

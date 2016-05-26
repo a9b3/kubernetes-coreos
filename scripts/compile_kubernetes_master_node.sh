@@ -27,6 +27,7 @@ hbs-templater compile --params "$MASTER_PARAMS" \
   -l --overwrite
 
 echo "Copying over CA certs..."
+rm -rf ../output/master/certs
 mkdir ../output/master/certs
 cp ../certs/ca.pem ../output/master/certs
 cp ../certs/ca-key.pem ../output/master/certs

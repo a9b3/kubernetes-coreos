@@ -1,6 +1,7 @@
 parent_path=$( cd "$(dirname "${BASH_SOURCE}")" ; pwd -P )
 cd "$parent_path"
 
+rm -rf ../certs
 mkdir -p ../certs
 
 echo "creating ca-key.pem and ca.pem in certs/ ..."

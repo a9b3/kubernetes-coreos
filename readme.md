@@ -15,11 +15,18 @@ Overview parts of the cluster.
 ## Super Quick Start
 
 ```sh
+# 1) generate certs
+# => certs/
+./scripts/create_cluster_root_ca.sh
+
+# 2) generate config.env
 ./scripts/generate_config.sh
+
+# 3) generate etcd cluster user-data
 ./scripts/compile_etcd_cluster.sh
 # => outputs/etcd/
 
-./scripts/create_cluster_root_ca.sh
+# 4) generate admin keys for kubectl
 ./scripts/create_cluster_admin_keypair.sh
 # => certs/
 

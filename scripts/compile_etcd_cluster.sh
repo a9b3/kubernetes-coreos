@@ -19,3 +19,9 @@ hbs-templater compile --params "$ETCD_PARAMS" \
   --input ../sample_src/templates_etcd_cluster \
   --output ../output/etcd \
   -l --overwrite
+
+echo "Copying over CA certs..."
+rm -rf ../output/etcd/certs
+mkdir ../output/etcd/certs
+cp ../certs/ca.pem ../output/etcd/certs
+cp ../certs/ca-key.pem ../output/etcd/certs
