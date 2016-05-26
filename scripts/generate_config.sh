@@ -6,9 +6,9 @@
 parent_path=$( cd "$(dirname "${BASH_SOURCE}")" ; pwd -P )
 cd "$parent_path"
 
-ETCD_CLUSTER_SIZE=3
+ETCD_CLUSTER_SIZE=2
 MASTER_CLUSTER_SIZE=1
-MINION_CLUSTER_SIZE=3
+MINION_CLUSTER_SIZE=2
 
 # Flannel range for docker containers
 POD_NETWORK='10.2.0.0/16'
