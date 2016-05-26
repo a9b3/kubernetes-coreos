@@ -25,6 +25,8 @@ Overview parts of the cluster.
 
 ## Super Quick Start
 
+Change settings in `scripts/generate_config.sh` and in `coreos_certs/` to your cluster.
+
 ```sh
 # 1) generate certs
 # => certs/
