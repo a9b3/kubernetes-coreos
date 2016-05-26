@@ -1,10 +1,21 @@
 # Kubernetes Cluster on CoreOS
 
+## Prereqs
+
 Install this. I am using this to do the templating.
 
 ```sh
 npm i -g hbs-templater
 ```
+
+Install [cfssl](https://github.com/cloudflare/cfssl) on your local machines.
+
+```sh
+go get -u github.com/cloudflare/cfssl/cmd/cfssl
+go get -u github.com/cloudflare/cfssl/cmd/...
+```
+
+## Overview
 
 Overview parts of the cluster.
 
