@@ -29,7 +29,10 @@ Change settings in `scripts/generate_config.sh` and in `coreos_certs/` to your c
 
 ```sh
 # 1) generate certs
-# => certs/
+# => certs/ca.pem
+# => certs/ca-key.pem
+# => certs/ca.csr
+# these will need to be moved into /etc/ssl/certs inside each machine
 ./scripts/create_cluster_root_ca.sh
 
 # 2) generate config.env
