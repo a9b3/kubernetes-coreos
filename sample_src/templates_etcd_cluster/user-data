@@ -4,15 +4,38 @@
 hostname: etcd
 
 write-files:
-  - path: /opt/bin/download-cfssl.sh
+  # output /etc/ssl/certs/coreos-$FQDN.json for cfssl to use
+  - path: /opt/bin/compile-coreosjson.sh
     permission: '0755'
     content: |
       #!/bin/bash
+      # env vars
+      # - FQDN
+      # - PRIVATE_IP
 
-      if [ ! -f /etc/bin/cfssl ]; then
-        cd /etc/bin/
-        git clone https://github.com/cloudflare/cfssl
-        script/build
+      if [ ! -f /etc/ssl/certs/coreos-$FQDN.json ]; then
+      cat > /etc/ssl/certs/coreos-$FQDN.json << EOL
+      {
+        "CN": "coreos-$FQDN",
+        "hosts": [
+          "coreos-1",
+          "coreos-1.local",
+          "127.0.0.1",
+          "$PRIVATE_IP"
+        ],
+        "key": {
+          "algo": "rsa",
+          "size": 2048
+        },
+        "names": [
+          {
+            "C": "US",
+            "L": "Lyons",
+            "ST": "California"
+          }
+        ]
+      }
+      EOL
       fi
 
 coreos:
@@ -32,6 +55,7 @@ coreos:
     etcd_servers: https://$private_ipv4:4001
     public-ip: $private_ipv4
     metadata: role=etcd
+
   units:
     - name: etcd2.service
       drop-ins:
@@ -47,6 +71,7 @@ coreos:
           Environment=ETCD_PEER_CERT_FILE=/etc/ssl/certs/coreos.pem
           Environment=ETCD_PEER_KEY_FILE=/etc/ssl/certs/coreos-key.pem
       command: start
+
     - name: fleet.service
       drop-ins:
       - name: 30-certificates.conf
@@ -57,16 +82,19 @@ coreos:
           Environment=FLEET_ETCD_CERTFILE=/etc/ssl/certs/coreos.pem
           Environment=FLEET_ETCD_KEYFILE=/etc/ssl/certs/coreos-key.pem
       command: start
+
     - name: iptables-restore.service
       enable: true
       command: start
-    - name: download-cfssl.service
+
+    - name:  compile-coreosjson.service
       command: start
       content: |
         [Unit]
-        Description=Download cfssl
+        Description=Compile /etc/ssl/certs/coreos-FQDN.json
 
         [Service]
-        ExecStart=/opt/bin/download-cfssl.sh
+        ExecStartPre=/usr/bin/chmod +x /opt/bin/compile-coreosjson.sh
+        ExecStart=/opt/bin/compile-coreosjson.sh
         RemainAfterExit=yes
         Type=oneshot
